@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class ShareIt {
-    static void main(String[] args) {
+    static public void main(String[] args) {
         SpringApplication.run(ShareIt.class, args);
     }
 }
