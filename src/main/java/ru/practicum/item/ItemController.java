@@ -30,18 +30,27 @@ public class ItemController {
     }
 
     @GetMapping("/{itemId}")
-    public ItemDto getById(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ItemWithBookingDto getById(@RequestHeader("X-Sharer-User-Id") Long userId,
                            @PathVariable Long itemId) {
         return itemService.getById(itemId, userId);
     }
 
     @GetMapping
-    public List<ItemDto> getAllByOwner(@RequestHeader("X-Sharer-User-Id") Long ownerId) {
+    public List<ItemWithBookingDto> getAllByOwner(@RequestHeader("X-Sharer-User-Id") Long ownerId) {
         return itemService.getAllByOwner(ownerId);
     }
 
     @GetMapping("/search")
     public List<ItemDto> search(@RequestParam String text) {
         return itemService.search(text);
+    }
+
+    @PostMapping("/{itemId}/comment")
+    public CommentDto addComment(
+            @RequestHeader("X-Sharer-User-Id") Long userId,
+            @PathVariable Long itemId,
+            @RequestBody CommentDto dto) {
+
+        return itemService.addComment(itemId, userId, dto);
     }
 }
