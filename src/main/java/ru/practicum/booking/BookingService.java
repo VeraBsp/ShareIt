@@ -1,15 +1,13 @@
 package ru.practicum.booking;
 
+import org.springframework.data.domain.Sort;
+
 import java.util.List;
 
 public interface BookingService {
-    BookingDto create(BookingDto dto);
-
-    BookingDto approve(Long bookingId, Long ownerId, boolean approved);
-
-    BookingDto getById(Long bookingId, Long userId);
-
-    List<BookingDto> getAllByUser(Long userId);
-
-    List<BookingDto> getAllByOwner(Long ownerId);
+    BookingDto create(Long userId, BookingCreateDto dto);
+    BookingDto approve(Long ownerId, Long bookingId, boolean approved);
+    BookingDto getById(Long userId, Long bookingId);
+    List<BookingDto> getByBooker(Long userId, BookingState state);
+    List<BookingDto> getByOwner(Long ownerId, BookingState state);
 }

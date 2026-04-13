@@ -7,9 +7,11 @@ public interface ItemService {
 
     ItemDto update(Long itemId, ItemDto itemDto, Long ownerId);
 
-    ItemDto getById(Long itemId, Long userId);
+    ItemWithBookingDto getById(Long itemId, Long userId);
 
-    List<ItemDto> getAllByOwner(Long ownerId);
+    List<ItemWithBookingDto> getAllByOwner(Long ownerId);
 
     List<ItemDto> search(String text);
+
+    CommentDto addComment(Long itemId, Long userId, CommentDto dto);
 }
