@@ -1,13 +1,17 @@
 package ru.practicum.item;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import ru.practicum.booking.Booking;
 import ru.practicum.booking.BookingRepository;
+import ru.practicum.booking.BookingShortDto;
 import ru.practicum.booking.BookingStatus;
 import ru.practicum.exception.BadRequestException;
 import ru.practicum.exception.ForbiddenException;
 import ru.practicum.exception.NotFoundException;
+import ru.practicum.request.ItemRequest;
+import ru.practicum.request.ItemRequestRepository;
 import ru.practicum.user.User;
 import ru.practicum.user.UserRepository;
 
@@ -20,13 +24,15 @@ public class ItemServiceImpl implements ItemService {
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final BookingRepository bookingRepository;
+    private final ItemRequestRepository requestRepository;
 
     @Autowired
-    public ItemServiceImpl(ItemRepository itemRepository, UserRepository userRepository, CommentRepository commentRepository, BookingRepository bookingRepository) {
+    public ItemServiceImpl(ItemRepository itemRepository, UserRepository userRepository, CommentRepository commentRepository, BookingRepository bookingRepository, ItemRequestRepository requestRepository) {
         this.itemRepository = itemRepository;
         this.userRepository = userRepository;
         this.commentRepository = commentRepository;
         this.bookingRepository = bookingRepository;
+        this.requestRepository = requestRepository;
     }
 
     @Override
@@ -36,6 +42,11 @@ public class ItemServiceImpl implements ItemService {
 
         Item item = ItemMapper.toItem(dto);
         item.setOwner(owner);
+        if (dto.getRequestId() != null) {
+            ItemRequest request = requestRepository.findById(dto.getRequestId())
+                    .orElseThrow(() -> new NotFoundException("Запрос не найден"));
+            item.setRequest(request);
+        }
         return ItemMapper.toItemDto(itemRepository.save(item));
     }
 
@@ -64,57 +75,33 @@ public class ItemServiceImpl implements ItemService {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
 
-        ItemWithBookingDto dto = ItemWithBookingDto.builder()
-                .id(item.getId())
-                .name(item.getName())
-                .description(item.getDescription())
-                .available(item.getAvailable())
-                .comments(new ArrayList<>())
-                .build();
+        ItemWithBookingDto dto = toItemWithBookingDto(item);
+
         if (item.getOwner().getId().equals(userId)) {
             setBookings(item, dto);
         }
-        List<CommentDto> comments = commentRepository
-                .findByItemIdOrderByCreatedDesc(itemId)
-                .stream()
-                .map(c -> CommentDto.builder()
-                        .id(c.getId())
-                        .text(c.getText())
-                        .authorName(c.getAuthor().getName())
-                        .created(c.getCreated())
-                        .build()
-                )
-                .toList();
-
-        dto.setComments(comments);
 
         return dto;
     }
 
     @Override
-    public List<ItemWithBookingDto> getAllByOwner(Long ownerId) {
-        List<Item> items = itemRepository.findByOwnerId(ownerId);
+    public List<ItemWithBookingDto> getAllByOwner(Long ownerId, int from, int size) {
+        Pageable pageable = PageRequest.of(from / size, size);
 
-        return items.stream().map(item -> {
-            ItemWithBookingDto dto = ItemWithBookingDto.builder()
-                    .id(item.getId())
-                    .name(item.getName())
-                    .description(item.getDescription())
-                    .available(item.getAvailable())
-                    .build();
-
-            setBookings(item, dto);
-
-            return dto;
-        }).toList();
+        return itemRepository.findByOwnerId(ownerId, pageable).stream()
+                .map(this::toItemWithBookingDto)
+                .toList();
     }
 
     @Override
-    public List<ItemDto> search(String text) {
-        if (text == null || text.isBlank()) {
+    public List<ItemDto> search(String text, int from, int size) {
+        if (text.isBlank()) {
             return List.of();
         }
-        return itemRepository.search(text).stream()
+
+        Pageable pageable = PageRequest.of(from / size, size);
+
+        return itemRepository.search(text.toLowerCase(), pageable).stream()
                 .map(ItemMapper::toItemDto)
                 .toList();
     }
@@ -157,25 +144,23 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void setBookings(Item item, ItemWithBookingDto dto) {
-        List<Booking> bookings = bookingRepository
-                .findByItem_IdAndStatusOrderByStartDesc(item.getId(), BookingStatus.APPROVED);
-
         LocalDateTime now = LocalDateTime.now();
+        bookingRepository
+                .findLastBooking(item.getId(), now)
+                .ifPresent(b -> dto.setLastBooking(
+                        new BookingShortDto(b.getId(), b.getBooker().getId())
+                ));
 
-        bookings.stream()
-                .filter(b -> b.getStart().isBefore(now))
-                .findFirst()
-                .ifPresent(b -> dto.setLastBooking(b.getStart()));
-
-        bookings.stream()
-                .filter(b -> b.getStart().isAfter(now))
-                .reduce((first, second) -> second)
-                .ifPresent(b -> dto.setNextBooking(b.getStart()));
-        dto.setComments(getComments(item.getId()));
+        bookingRepository
+                .findNextBooking(item.getId(), now)
+                .ifPresent(b -> dto.setNextBooking(
+                        new BookingShortDto(b.getId(), b.getBooker().getId())
+                ));
     }
 
-    private List<CommentDto> getComments(Long itemId) {
-        return commentRepository.findByItemIdOrderByCreatedDesc(itemId)
+    private ItemWithBookingDto toItemWithBookingDto(Item item) {
+        List<CommentDto> comments = commentRepository
+                .findByItemIdOrderByCreatedDesc(item.getId())
                 .stream()
                 .map(c -> CommentDto.builder()
                         .id(c.getId())
@@ -184,5 +169,13 @@ public class ItemServiceImpl implements ItemService {
                         .created(c.getCreated())
                         .build())
                 .toList();
+
+        return ItemWithBookingDto.builder()
+                .id(item.getId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .available(item.getAvailable())
+                .comments(comments)
+                .build();
     }
 }

@@ -28,8 +28,10 @@ public class RequestController {
     }
 
     @GetMapping("/all")
-    public List<ItemRequestDto> getAll(@RequestHeader(USER_ID_HEADER) Long userId) {
-        return requestService.getAll();
+    public List<ItemRequestDto> getAll(        @RequestHeader(USER_ID_HEADER) Long userId,
+                                               @RequestParam int from,
+                                               @RequestParam int size) {
+        return requestService.getAll(userId, from, size);
     }
 
     @GetMapping("/{requestId}")

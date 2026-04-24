@@ -9,5 +9,5 @@ public interface RequestService {
 
     List<ItemRequestDto> getAllByUser(Long userId);
 
-    List<ItemRequestDto> getAll();
+    List<ItemRequestDto> getAll(Long userId, int from, int size);
 }

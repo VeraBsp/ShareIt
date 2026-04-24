@@ -19,5 +19,5 @@ public class ItemDto {
     private String description;
     @NotNull(message = "Статус доступности обязателен")
     private Boolean available;
-    private Long request;
+    private Long requestId;
 }

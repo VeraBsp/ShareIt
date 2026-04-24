@@ -9,9 +9,9 @@ public interface ItemService {
 
     ItemWithBookingDto getById(Long itemId, Long userId);
 
-    List<ItemWithBookingDto> getAllByOwner(Long ownerId);
+    List<ItemWithBookingDto> getAllByOwner(Long ownerId, int from, int size);
 
-    List<ItemDto> search(String text);
+    List<ItemDto> search(String text, int from, int size);
 
     CommentDto addComment(Long itemId, Long userId, CommentDto dto);
 }
