@@ -25,6 +25,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingDto create(Long userId, BookingCreateDto dto) {
+        if (dto.getStart().isBefore(LocalDateTime.now()) || dto.getEnd().isBefore(LocalDateTime.now()) || dto.getEnd().isBefore(dto.getStart())){
+            throw new BadRequestException("Проверьте даты бронирования! Дата начала бронирования не может быть ранее текущей даты, дата конца бронирования не может быть ранее текущей даты или ранее даты начала бронирования!");
+        }
         User booker = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
@@ -37,9 +40,6 @@ public class BookingServiceImpl implements BookingService {
 
         if (item.getOwner().getId().equals(userId)) {
             throw new NotFoundException("Владелец не может бронировать свою вещь");
-        }
-        if (dto.getStart().isBefore(LocalDateTime.now())){
-            throw new BadRequestException("Укажите дату начала бронирования не позже текущей даты");
         }
 
         Booking booking = Booking.builder()

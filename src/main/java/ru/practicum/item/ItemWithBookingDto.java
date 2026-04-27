@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.practicum.booking.BookingShortDto;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
