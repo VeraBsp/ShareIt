@@ -2,6 +2,8 @@ package ru.practicum.user;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.practicum.exception.BadRequestException;
+import ru.practicum.exception.NotFoundException;
 
 import java.util.List;
 
@@ -16,6 +18,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto create(UserDto dto) {
+        if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
+            throw new BadRequestException("Email уже используется");
+        }
         User user = UserMapper.toUser(dto);
         return UserMapper.toUserDto(userRepository.save(user));
     }
@@ -23,7 +28,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto getById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         return UserMapper.toUserDto(user);
     }
 
@@ -37,11 +42,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto update(Long id, UserDto dto) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
+        if (dto.getEmail() != null && !dto.getEmail().equals(user.getEmail())) {
+            if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
+                throw new BadRequestException("Email уже используется");
+            }
+            user.setEmail(dto.getEmail());
+        }
         if (dto.getName() != null) user.setName(dto.getName());
-        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
-
         return UserMapper.toUserDto(userRepository.save(user));
     }
 

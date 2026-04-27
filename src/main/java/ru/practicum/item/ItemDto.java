@@ -13,11 +13,11 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ItemDto {
     private Long id;
-    @NotBlank
+    @NotBlank(message = "Наименование вещи не может быть пустым")
     private String name;
     @NotBlank(message = "Описание вещи не может быть пустым")
     private String description;
     @NotNull(message = "Статус доступности обязателен")
     private Boolean available;
-    private Long request;
+    private Long requestId;
 }
